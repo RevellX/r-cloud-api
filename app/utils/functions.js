@@ -4,12 +4,18 @@ const jwt = require("jsonwebtoken");
 const crypto = require("node:crypto");
 // const db = require("../config/database");
 
-const { KEY_SECRET } = require("../config/constants");
+require("dotenv").config({
+  path: path.join(__dirname, "..", ".env"),
+});
 
 const createToken = (user_id) => {
-  const token = jwt.sign({ user_id: user_id }, KEY_SECRET, {
-    expiresIn: "24h",
-  });
+  const token = jwt.sign(
+    { user_id: user_id },
+    process.env.JWT_KEY_SECRET,
+    {
+      expiresIn: "24h",
+    }
+  );
 
   const date = new Date();
   date.setDate(date.getDate() + 1);
@@ -20,7 +26,7 @@ const createToken = (user_id) => {
 
 const checkToken = (token) => {
   try {
-    result = jwt.verify(token, KEY_SECRET);
+    result = jwt.verify(token, process.env.JWT_KEY_SECRET);
     return true;
   } catch (err) {
     return false;

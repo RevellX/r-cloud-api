@@ -44,8 +44,6 @@ const swapDuties = (req, res) => {
       .status(400)
       .json({ message: "Something is wrong with your body data" });
 
-  console.log(dutyOne, " || ", dutyTwo);
-
   Duty.findAll({
     attributes: ["id", "date", "userId"],
     where: {
