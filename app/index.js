@@ -3,11 +3,12 @@ const app = express();
 const port = 5000;
 const db = require("./config/database");
 const cors = require("cors");
+const https = require("https");
+const http = require("http");
+const path = require("path");
+const fs = require("fs");
 
-const {
-  clearUploadsDirectory,
-  sha256,
-} = require("./utils/functions");
+const { clearUploadsDirectory } = require("./utils/functions");
 
 const FileModel = require("./models/File");
 const UserModel = require("./models/User");
@@ -15,6 +16,16 @@ const DutyModel = require("./models/Duty");
 const DutyExcludedDayModel = require("./models/DutyExcludedDay");
 
 const initApp = async () => {
+  const options = {
+    env: "DEVELOPMENT",
+  };
+
+  process.argv.map((arg) => {
+    const opts = arg.split("=");
+    if (opts.length !== 2) return;
+    options[opts[0].toLowerCase()] = opts[1].toUpperCase();
+  });
+
   return new Promise(async (resolve, reject) => {
     console.log("Starting the API");
 
@@ -52,7 +63,22 @@ const initApp = async () => {
       app.use("/api", require("./routes/File"));
       app.use("/api", require("./routes/Duty"));
 
-      app.listen(port, () => {
+      let server;
+      if (options.env === "PRODUCTION") {
+        const privateKey = fs.readFileSync();
+        const certificate = fs.readFileSync();
+        server = https.createServer(
+          {
+            key: privateKey,
+            cert: certificate,
+          },
+          app
+        );
+      } else if (options.env === "DEVELOPMENT")
+        server = http.createServer(app);
+      else throw new Error("Incorrect env option");
+
+      server.listen(port, () => {
         console.log("App started on port " + port);
         resolve();
       });
