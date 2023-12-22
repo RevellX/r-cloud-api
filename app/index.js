@@ -7,6 +7,7 @@ const https = require("https");
 const http = require("http");
 const path = require("path");
 const fs = require("fs");
+require("dotenv");
 
 const { clearUploadsDirectory } = require("./utils/functions");
 
@@ -65,8 +66,12 @@ const initApp = async () => {
 
       let server;
       if (options.env === "PRODUCTION") {
-        const privateKey = fs.readFileSync();
-        const certificate = fs.readFileSync();
+        const privateKey = fs.readFileSync(
+          process.env.SSL_PRIVATEKEY
+        );
+        const certificate = fs.readFileSync(
+          process.env.SSL_CERTIFICATE
+        );
         server = https.createServer(
           {
             key: privateKey,
