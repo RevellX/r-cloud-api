@@ -6,7 +6,7 @@ const DutyExcludedDay = require("../app/models/DutyExcludedDay");
 const User = require("../app/models/User");
 
 // Number of duties to create wne calling this script
-const CREATE_DUTIES_COUNT = 10;
+const CREATE_DUTIES_COUNT = 5;
 
 // Minimal number of ongoing duties to even allow this script to run
 const MINIMAL_DUTIES_COUNT = 10;
