@@ -83,7 +83,8 @@ const run = async () => {
     } else {
       // If there are no active duties, start today with the first enabled user
       startWithDate = createDateFromDate(new Date());
-      startWithUsername = enabledUsers[0].username;
+      startWithUsername =
+        enabledUsers[enabledUsers.length - 1].username;
     }
 
     // I'm probably misusing the 'new Date()', but it works so it stays for now
@@ -96,7 +97,7 @@ const run = async () => {
     // And move it one forward
     offset++;
     // If it's out of bounds, reset
-    if (offset >= enabledUsers.length) offset = set;
+    if (offset >= enabledUsers.length) offset = 0;
     do {
       if (![6, 0].includes(date.getDay()) && !isExcluded(date)) {
         dutiesDates.push({
