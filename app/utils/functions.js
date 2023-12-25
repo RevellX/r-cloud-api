@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs/promises");
 const jwt = require("jsonwebtoken");
 const crypto = require("node:crypto");
+const User = require("../models/User");
 // const db = require("../config/database");
 
 require("dotenv").config({
@@ -49,6 +50,11 @@ const authorize = (req, res, next) => {
   } else res.status(401).json({ message: "You are not authorized" });
 };
 
+const getUserById = async (userId = null) => {
+  if (!userId) return null;
+  return User.findByPk(userId);
+};
+
 const clearUploadsDirectory = async () => {
   const publicDir = path.join(__dirname, "..", "..", "uploads");
 
@@ -80,7 +86,14 @@ const sha256 = async (message) => {
   return hashHex;
 };
 
+const isUUIDCorrect = (uuid) => {
+  if (uuid && typeof uuid === "string" && uuid.length === 36)
+    return true;
+  return false;
+};
+
 module.exports = {
+  isUUIDCorrect,
   clearUploadsDirectory,
   createToken,
   checkToken,

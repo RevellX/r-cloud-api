@@ -63,6 +63,7 @@ const run = async () => {
       where: {
         isDutyEnabled: true,
       },
+      order: [["order", "ASC"]],
     });
 
     // At this i can't explain what is happenig, but it seems to be working as intended

@@ -1,12 +1,7 @@
 const Duty = require("../models/Duty");
 const User = require("../models/User");
 const { Op } = require("sequelize");
-
-const isUUIDCorrect = (uuid) => {
-  if (uuid && typeof uuid === "string" && uuid.length === 36)
-    return true;
-  return false;
-};
+const { isUUIDCorrect } = require("../utils/functions");
 
 const getDuties = (req, res) => {
   const date = new Date();

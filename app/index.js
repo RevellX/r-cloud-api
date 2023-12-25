@@ -40,7 +40,7 @@ const initApp = async () => {
 
       // console.log("Syncing database models"); // { force: true} <- be carefull with that
       // await FileModel.sync({ force: true });
-      // await UserModel.sync({ alter: true });
+      // await UserModel.sync({ force: true });
       // await DutyModel.sync({ force: true });
       // await DutyExcludedDayModel.sync({ force: true });
 
