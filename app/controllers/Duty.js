@@ -68,7 +68,50 @@ const swapDuties = (req, res) => {
 };
 
 const deleteDuty = (req, res, next) => {
-  res.json({ message: "Deleting duty" });
+  const { dutyId } = req.body;
+
+  if (!isUUIDCorrect(dutyId))
+    return res
+      .status(400)
+      .json({ message: "Something is wrong with your body data" });
+
+  let deletedDutyDate;
+  Duty.findByPk(dutyId, {
+    attributes: ["id", "date", "userId"],
+  })
+    .then((duty) => {
+      deletedDutyDate = duty.date;
+      duty.destroy();
+      return Duty.findAll({
+        attributes: ["id", "date", "userId"],
+        where: {
+          date: { [Op.gt]: duty.date },
+        },
+        order: [["date", "ASC"]],
+      });
+    })
+    .then((futureDuties) => {
+      let tempDate;
+      return Promise.all(
+        futureDuties.map((duty) => {
+          tempDate = duty.date;
+          duty.date = deletedDutyDate;
+          deletedDutyDate = tempDate;
+          return duty.save();
+        })
+      );
+    })
+    .then(() => {
+      res.json({ message: "OK" });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Unable to delete duty" });
+    });
 };
 
-module.exports = { getDuties, swapDuties, deleteDuty };
+const insertDuty = (req, res, next) => {
+  res.json({ message: "Inserting duty" });
+};
+
+module.exports = { getDuties, swapDuties, deleteDuty, insertDuty };
