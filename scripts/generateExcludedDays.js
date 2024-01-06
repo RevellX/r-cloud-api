@@ -2,7 +2,21 @@
 
 const DutyExcludedDay = require("../app/models/DutyExcludedDay");
 
-const EXCLUDED_DAYS = ["2023-12-25", "2023-12-26", "2023-12-27"];
+const EXCLUDED_DAYS = [
+  "2024-01-01",
+  "2024-01-06",
+  "2024-03-31",
+  "2024-04-01",
+  "2024-05-01",
+  "2024-05-03",
+  "2024-05-19",
+  "2024-05-30",
+  "2024-08-15",
+  "2024-11-01",
+  "2024-11-11",
+  "2024-12-25",
+  "2024-12-26",
+];
 
 const run = async () => {
   const createObjects = EXCLUDED_DAYS.map((excludedDay) => {
