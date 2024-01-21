@@ -3,6 +3,21 @@ const User = require("../models/User");
 const { Op } = require("sequelize");
 const { isUUIDCorrect } = require("../utils/functions");
 
+const createDateObjFromDate = (date) => {
+  let fillYears = "00" + date.split("-")[0];
+  let fillMonths = "00" + date.split("-")[1];
+  let fillDays = "00" + date.split("-")[2];
+
+  fillYears = fillYears.slice(-4);
+  fillMonths = fillMonths.slice(-2);
+  fillDays = fillDays.slice(-2);
+
+  date = `${fillYears}-${fillMonths}-${fillDays}`;
+
+  const returnValue = new Date(`${date}`);
+  return returnValue;
+};
+
 const getDuties = (req, res) => {
   const date = new Date();
   const todaysDate = `${date.getFullYear()}-${
@@ -16,14 +31,14 @@ const getDuties = (req, res) => {
       attributes: ["id", "username", "shortcut"],
     },
     limit: 20,
-    where: { date: { [Op.gte]: todaysDate + " 00:00:00" } },
+    where: { date: { [Op.gte]: createDateObjFromDate(todaysDate) } },
     order: [["date", "ASC"]],
   })
     .then((duties) => {
       return res.json(duties);
     })
     .catch((err) => {
-      console.log(err);
+      // console.log(err);
       return res
         .status(500)
         .json({ message: "Unable to fetch duties" });
@@ -60,7 +75,7 @@ const swapDuties = (req, res) => {
         );
     })
     .catch((err) => {
-      console.log(err);
+      // console.log(err);
       return res
         .status(500)
         .json({ message: "Unable to swap duties" });
@@ -69,7 +84,7 @@ const swapDuties = (req, res) => {
 
 const deleteDuty = (req, res, next) => {
   const { dutyId } = req.body;
-  return res.json({ message: "Endpoint disabled" });
+
   if (!isUUIDCorrect(dutyId))
     return res
       .status(400)
@@ -85,7 +100,7 @@ const deleteDuty = (req, res, next) => {
       return Duty.findAll({
         attributes: ["id", "date", "userId"],
         where: {
-          date: { [Op.gt]: duty.date },
+          date: { [Op.gt]: createDateObjFromDate(duty.date) },
         },
         order: [["date", "ASC"]],
       });
@@ -105,7 +120,7 @@ const deleteDuty = (req, res, next) => {
       res.json({ message: "OK" });
     })
     .catch((err) => {
-      console.log(err);
+      // console.log(err);
       res.status(500).json({ message: "Unable to delete duty" });
     });
 };

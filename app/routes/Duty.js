@@ -45,7 +45,7 @@ router.post(
     "dutyId": UUID of duty which you want to delete
   }
 
-  "dutyId" will be deleted and all future duties witll be moved on day backwards
+  "dutyId" will be deleted and all future duties witll be moved one day backwards
 */
 router.delete(
   "/duty",
