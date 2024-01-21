@@ -112,6 +112,7 @@ const deleteDuty = (req, res, next) => {
 
 const insertDuty = (req, res, next) => {
   const { dutyId, userId } = req.body;
+  return res.json({ message: "Endpoint disabled" });
 
   if (!isUUIDCorrect(dutyId) || !isUUIDCorrect(userId))
     return res
