@@ -69,7 +69,7 @@ const swapDuties = (req, res) => {
 
 const deleteDuty = (req, res, next) => {
   const { dutyId } = req.body;
-
+  return res.json({ message: "Endpoint disabled" });
   if (!isUUIDCorrect(dutyId))
     return res
       .status(400)
@@ -111,7 +111,39 @@ const deleteDuty = (req, res, next) => {
 };
 
 const insertDuty = (req, res, next) => {
-  res.json({ message: "Inserting duty" });
+  const { dutyId, userId } = req.body;
+
+  if (!isUUIDCorrect(dutyId) || !isUUIDCorrect(userId))
+    return res
+      .status(400)
+      .json({ message: "Something is wrong with your body data" });
+
+  let insertedDuty;
+  let futureDuties;
+
+  Duty.findByPk(dutyId, {
+    attributes: ["id", "date", "userId"],
+  })
+    .then((l_insertedDuty) => {
+      if (!l_insertedDuty) throw "Insert duty does not exist";
+      insertedDuty = l_insertedDuty;
+
+      return Duty.findAll({
+        attributes: ["id", "date", "userId"],
+        where: {
+          date: { [Op.gt]: l_insertedDuty.date },
+        },
+        order: [["date", "ASC"]],
+      });
+    })
+    .then((l_futureDuties) => {
+      futureDuties = l_futureDuties;
+      res.json({ message: "OK" });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Unable to insert duty" });
+    });
 };
 
 module.exports = { getDuties, swapDuties, deleteDuty, insertDuty };

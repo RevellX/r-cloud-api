@@ -9,7 +9,10 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv");
 
-const { clearUploadsDirectory } = require("./utils/functions");
+const {
+  clearUploadsDirectory,
+  sha256,
+} = require("./utils/functions");
 
 const FileModel = require("./models/File");
 const UserModel = require("./models/User");
@@ -61,7 +64,7 @@ const initApp = async () => {
       // app.use("/files", express.static(__dirname + "/../public"));
 
       app.use("/api", require("./routes/Auth"));
-      app.use("/api", require("./routes/File"));
+      // app.use("/api", require("./routes/File"));
       app.use("/api", require("./routes/Duty"));
 
       let server;
@@ -93,7 +96,11 @@ const initApp = async () => {
   });
 };
 
-const doTestingStuff = async () => {};
+const doTestingStuff = async () => {
+  sha256("KebaBJesTZajebistY").then((h) =>
+    console.log("Hashed password: ", h)
+  );
+};
 
 initApp()
   .then(() => {
