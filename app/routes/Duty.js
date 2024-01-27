@@ -6,7 +6,7 @@ const {
   insertDuty,
 } = require("../controllers/Duty");
 const { authorize } = require("../utils/functions");
-const { checkUserPermission } = require("../controllers/Auth");
+const { userHasPermission } = require("../controllers/Auth");
 const router = express.Router();
 
 router.get("/duties", getDuties);
@@ -20,7 +20,7 @@ router.get("/duties", getDuties);
 router.patch(
   "/duties",
   authorize,
-  checkUserPermission("moderator"),
+  userHasPermission("duties.swap"),
   swapDuties
 );
 
@@ -36,7 +36,7 @@ router.patch(
 router.post(
   "/duty",
   authorize,
-  checkUserPermission("moderator"),
+  userHasPermission("duties.insert"),
   insertDuty
 );
 
@@ -50,7 +50,7 @@ router.post(
 router.delete(
   "/duty",
   authorize,
-  checkUserPermission("moderator"),
+  userHasPermission("duties.delete"),
   deleteDuty
 );
 

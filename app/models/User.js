@@ -31,6 +31,11 @@ const User = sequelize.define(
       defaultValue: "default",
       allowNull: false,
     },
+    permissions: {
+      type: DataTypes.STRING(10000),
+      allowNull: false,
+      defaultValue: "",
+    },
     isDutyEnabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

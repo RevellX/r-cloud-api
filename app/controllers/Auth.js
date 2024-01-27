@@ -59,6 +59,70 @@ const checkUsernameIsUnique = (req, res, next) => {
     });
 };
 
+const getPermissionsFrom = (user) => {
+  // This piece of code turn permissions string into permissions object
+  // Warning: There is no error control. Permission string MUST be kept in order;
+  const permissions = {};
+  user.permissions &&
+    user.permissions
+      .split(";")
+      .map((permStringOne) => permStringOne.split("."))
+      .map((permission) => {
+        if (!permissions[permission[0]])
+          permissions[permission[0]] = {};
+        permissions[permission[0]][permission[1].split(":")[0]] =
+          permission[1].split(":")[1];
+      });
+  return permissions;
+};
+
+const userHasPermission =
+  (permission = undefined) =>
+  (req, res, next) => {
+    const { user_id } = req.tokenPayload;
+
+    if (
+      typeof permission !== "string" ||
+      permission.split(".").length !== 2
+    )
+      return res
+        .status(500)
+        .json({ message: "Error while checking permission" });
+
+    UserModel.findByPk(user_id)
+      .then((user) => {
+        const userPermissions = getPermissionsFrom(user);
+        const [module, action] = permission.split(".");
+        const permissionCheck = {
+          module: module,
+          action: action,
+        };
+        let result = false;
+        if (
+          userPermissions[permissionCheck.module] &&
+          userPermissions[permissionCheck.module][
+            permissionCheck.action
+          ]
+        ) {
+          result =
+            userPermissions[permissionCheck.module][
+              permissionCheck.action
+            ];
+        } else if (
+          userPermissions[permissionCheck.module] &&
+          "*" in userPermissions[permissionCheck.module]
+        ) {
+          result = userPermissions[permissionCheck.module]["*"];
+        }
+        if (result) return next();
+        return res.status(403).json({ message: "No permission" });
+      })
+      .catch((err) =>
+        res.status(400).json({ message: "Something went wrong" })
+      );
+  };
+
+// This should no longer be used.
 const checkUserPermission = (type) => (req, res, next) => {
   const { user_id } = req.tokenPayload;
 
@@ -152,7 +216,7 @@ const authenticate = async (req, res, next) => {
   const hashedPassword = await sha256(password);
 
   UserModel.findOne({
-    attributes: ["id", "username", "type"],
+    attributes: ["id", "username", "type", "permissions"],
     where: {
       username: username,
       password: hashedPassword,
@@ -164,12 +228,15 @@ const authenticate = async (req, res, next) => {
           message: "Unable to authenticate with given credentials",
         });
 
+      const permissions = getPermissionsFrom(user);
+
       return res.json({
         message: "Authenticated",
         user: {
           id: user.id,
           username: user.username,
           type: user.type,
+          permissions: permissions,
         },
         ...createToken(user.id),
       });
@@ -189,4 +256,5 @@ module.exports = {
   checkBody,
   checkUsernameIsUnique,
   checkUserPermission,
+  userHasPermission,
 };
