@@ -9,6 +9,8 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv");
 
+const { Op, QueryTypes } = require("sequelize");
+
 const {
   clearUploadsDirectory,
   sha256,
@@ -18,6 +20,13 @@ const FileModel = require("./models/File");
 const UserModel = require("./models/User");
 const DutyModel = require("./models/Duty");
 const DutyExcludedDayModel = require("./models/DutyExcludedDay");
+const ExpenseModel = require("./models/Expense");
+const ExpenseGroupModel = require("./models/ExpenseGroup");
+const MessageModel = require("./models/Message");
+const { where } = require("sequelize");
+const { group } = require("console");
+const sequelize = require("./config/database");
+const { type } = require("os");
 
 const initApp = async () => {
   const options = {
@@ -43,12 +52,22 @@ const initApp = async () => {
 
       // console.log("Syncing database models"); // { force: true} <- be carefull with that
       // await FileModel.sync({ force: true });
-      await UserModel.sync({ alter: true });
+      // await UserModel.sync({ alter: true });
       // await DutyModel.sync({ force: true });
       // await DutyExcludedDayModel.sync({ force: true });
+      // await ExpenseModel.sync({ alter: true });
+      // await ExpenseGroupModel.sync({ alter: true });
+      await MessageModel.sync({ force: true });
 
+      // Relations between models
       UserModel.hasMany(DutyModel);
       DutyModel.belongsTo(UserModel);
+
+      ExpenseGroupModel.hasMany(ExpenseModel);
+      ExpenseModel.belongsTo(ExpenseGroupModel);
+
+      UserModel.hasMany(ExpenseModel);
+      ExpenseModel.belongsTo(UserModel);
 
       app.all("/", (req, res) =>
         res.json({ message: "Backend is working..." })
@@ -66,6 +85,8 @@ const initApp = async () => {
       app.use("/api", require("./routes/Auth"));
       // app.use("/api", require("./routes/File"));
       app.use("/api", require("./routes/Duty"));
+      app.use("/api", require("./routes/Finance"));
+      app.use("/api", require("./routes/Messages"));
 
       let server;
       if (options.env === "PRODUCTION") {
@@ -97,13 +118,130 @@ const initApp = async () => {
 };
 
 const doTestingStuff = async () => {
-  sha256("KebaBJesTZajebistY").then((h) =>
-    console.log("Hashed password: ", h)
-  );
+  const messages = [
+    ["Patryk", "Kuba", "Siema, co tam?"],
+    ["Kuba", "Patryk", "No jest zajebiście, a u ciebie?"],
+    ["Patryk", "Kuba", "Ogólnie to jest zajebioza"],
+    ["Kuba", "Patryk", "To się bardzo cieszę"],
+    //
+    ["Kamil", "Patryk", "Eee... Idziesz na rower?"],
+    ["Kamil", "Patryk", "Halo? Jesteś?"],
+    //
+    ["Patryk", "Mateusz", "Ty głupia kurwo, jedź po tego Fischera!"],
+    //
+    ["Kamil", "Kuba", "Był ktoś po Linerema?"],
+    ["Kuba", "Kamil", "Nie wiem"],
+    //
+    // ["Kamil", "Alan", "Weź spierdalaj!"],
+  ];
+
+  const users = await UserModel.findAll();
+
+  const ids_names_map = {};
+  const names_ids_map = {};
+  users.map((user) => {
+    ids_names_map[user.username] = user.id;
+    names_ids_map[user.id] = user.username;
+  });
+
+  // console.log(ids_names_map);
+  // console.log(ids_names_map["Patryk"]);
+  // console.log(ids_names_map[messages[0][0]]);
+  // return;
+
+  const displayChats = async () => {
+    console.log("Displaying chats");
+
+    // Get messages in Chat
+    //   const loggedUser = "Patryk";
+    //   const selectedUser = "Kuba";
+
+    //   MessageModel.findAll({
+    //     where: {
+    //       [Op.or]: [
+    //         {
+    //           [Op.and]: [
+    //             { senderId: loggedUser },
+    //             { receiverId: selectedUser },
+    //           ],
+    //         },
+    //         {
+    //           [Op.and]: [
+    //             { receiverId: loggedUser },
+    //             { senderId: selectedUser },
+    //           ],
+    //         },
+    //       ],
+    //     },
+    //     order: [["sentAt", "ASC"]],
+    //   }).then((data) => data.map((d) => console.log(d.dataValues)));
+    // };
+
+    const loggedUser = ids_names_map["Patryk"];
+    const selectedChat = ids_names_map["Kuba"];
+    // Get Chats
+    const sql =
+      "(SELECT messages.receiverId as chatId, messages.sentAt FROM messages WHERE messages.senderId=:loggedUser ORDER BY messages.sentAt ASC) UNION (SELECT messages.senderId as chatId, messages.sentAt FROM messages WHERE messages.receiverId=:loggedUser ORDER BY messages.sentAt ASC) ORDER BY sentAt DESC";
+
+    sequelize
+      .query(sql, {
+        replacements: { loggedUser },
+        type: QueryTypes.SELECT,
+      })
+      .then((response) => {
+        const ids = [];
+        const chats = response.filter((chat) => {
+          if (!ids.includes(chat.chatId)) {
+            ids.push(chat.chatId);
+            return true;
+          }
+          return false;
+        });
+        console.log(chats);
+      })
+      .catch((err) =>
+        console.log("Some error while fetching chats", err)
+      );
+
+    // Get chat messages
+    const sql_2 =
+      "SELECT messages.id, messages.receiverId, messages.senderId, messages.value, messages.sentAt FROM messages WHERE (messages.receiverId = :loggedUser AND messages.senderId = :selectedChat) OR (messages.receiverId = :selectedChat AND messages.senderId = :loggedUser) ORDER BY messages.sentAt DESC";
+    sequelize
+      .query(sql_2, {
+        replacements: { loggedUser, selectedChat },
+        type: QueryTypes.SELECT,
+      })
+      .then((response) => {
+        console.log(response);
+      })
+      .catch((err) =>
+        console.log("Some error whilte fetching chat messages", err``)
+      );
+
+    // DEBUG
+    // console.log(chats);
+  };
+
+  // DEV TEST
+  let counter = 0;
+  const sender = setInterval(() => {
+    if (counter < messages.length) {
+      console.log("Sending fake message");
+      MessageModel.create({
+        value: messages[counter][2],
+        senderId: ids_names_map[messages[counter][0]],
+        receiverId: ids_names_map[messages[counter][1]],
+      });
+    } else {
+      clearInterval(sender);
+      // displayChats();
+    }
+    counter++;
+  }, 200);
 };
 
 initApp()
   .then(() => {
-    // doTestingStuff();
+    doTestingStuff();
   })
   .catch((err) => console.log(err));

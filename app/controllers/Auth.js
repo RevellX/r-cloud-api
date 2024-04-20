@@ -114,6 +114,8 @@ const userHasPermission =
         ) {
           result = userPermissions[permissionCheck.module]["*"];
         }
+        if (result === "true") result = true;
+        else if (result === "false") result = false;
         if (result) return next();
         return res.status(403).json({ message: "No permission" });
       })

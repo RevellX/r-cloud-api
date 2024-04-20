@@ -18,6 +18,63 @@ const createDateObjFromDate = (date) => {
   return returnValue;
 };
 
+const getUsers = (req, res) => {
+  User.findAll({
+    attributes: [
+      "id",
+      "username",
+      "shortcut",
+      "order",
+      "isDutyEnabled",
+    ],
+  })
+    .then((users) => {
+      return res.json(users);
+    })
+    .catch((err) => {
+      return res
+        .status(500)
+        .json({ message: "Unable to fetch users" });
+    });
+};
+
+const toggleUser = (req, res) => {
+  const userId = req.params["userId"];
+
+  if (!isUUIDCorrect(userId))
+    return res
+      .status(400)
+      .json({ message: "Something is wrong with your body data" });
+
+  User.findByPk(userId, {
+    attributes: [
+      "id",
+      "username",
+      "shortcut",
+      "order",
+      "isDutyEnabled",
+    ],
+  })
+    .then((user) => {
+      if (!user)
+        return res
+          .status(404)
+          .send({ message: "Unable to find user" });
+
+      user.isDutyEnabled = !user.isDutyEnabled;
+
+      return user.save();
+    })
+    .then((user) => {
+      return res.json(user);
+    })
+    .catch((err) => {
+      return res
+        .status(500)
+        .json({ message: "Unable to toggle user" });
+    });
+};
+
 const getDuties = (req, res) => {
   const date = new Date();
   const todaysDate = `${date.getFullYear()}-${
@@ -46,7 +103,6 @@ const getDuties = (req, res) => {
 };
 
 const swapDuties = (req, res) => {
-  const { user_id } = req.tokenPayload; // Maybe for permissions check?
   const { dutyOne, dutyTwo } = req.body;
 
   if (!isUUIDCorrect(dutyOne) || !isUUIDCorrect(dutyTwo))
@@ -162,4 +218,11 @@ const insertDuty = (req, res, next) => {
     });
 };
 
-module.exports = { getDuties, swapDuties, deleteDuty, insertDuty };
+module.exports = {
+  getUsers,
+  toggleUser,
+  getDuties,
+  swapDuties,
+  deleteDuty,
+  insertDuty,
+};

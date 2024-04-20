@@ -1,6 +1,5 @@
 const { DataTypes, Sequelize } = require("sequelize");
 const sequelize = require("../config/database");
-const Duty = require("./Duty");
 
 const User = sequelize.define(
   "user",
@@ -27,6 +26,7 @@ const User = sequelize.define(
       allowNull: false,
     },
     type: {
+      // This is no longer in use. Remove it sometime in the future.
       type: DataTypes.ENUM("default", "moderator", "admin"),
       defaultValue: "default",
       allowNull: false,

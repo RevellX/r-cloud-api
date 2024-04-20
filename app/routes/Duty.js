@@ -4,6 +4,8 @@ const {
   swapDuties,
   deleteDuty,
   insertDuty,
+  getUsers,
+  toggleUser,
 } = require("../controllers/Duty");
 const { authorize } = require("../utils/functions");
 const { userHasPermission } = require("../controllers/Auth");
@@ -45,13 +47,36 @@ router.post(
     "dutyId": UUID of duty which you want to delete
   }
 
-  "dutyId" will be deleted and all future duties witll be moved one day backwards
+  "dutyId" will be deleted and all future duties will be moved one day backwards
 */
 router.delete(
   "/duty",
   authorize,
   userHasPermission("duties.delete"),
   deleteDuty
+);
+
+/*
+  Get duty enabled users
+*/
+router.get(
+  "/dutyUsers",
+  authorize,
+  userHasPermission("duties.toggle"),
+  getUsers
+);
+
+/*
+  {
+    "userId": UUID of user which you want to toggle "isDutyEnabled"
+  }
+
+*/
+router.patch(
+  "/dutyToggle/:userId",
+  authorize,
+  userHasPermission("duties.toggle"),
+  toggleUser
 );
 
 module.exports = router;
