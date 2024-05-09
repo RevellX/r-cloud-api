@@ -62,7 +62,7 @@ const clearUploadsDirectory = async () => {
 
   const deletePromises = files.map(async (file) => {
     const elementToDelete = path.join(publicDir, file);
-    console.log("Removing: ", elementToDelete);
+    consoleLog(`Removing: ${elementToDelete}`);
     return fs.rm(elementToDelete, { recursive: true });
   });
 
@@ -92,11 +92,31 @@ const isUUIDCorrect = (uuid) => {
   return false;
 };
 
+const getDebugDate = () => {
+  const date = new Date();
+  return `[${("0000" + date.getFullYear()).slice(-4)}-${(
+    "00" +
+    (date.getMonth() + 1)
+  ).slice(-2)}-${("00" + date.getDate()).slice(-2)} ${(
+    "00" + date.getHours()
+  ).slice(-2)}:${("00" + date.getMinutes()).slice(-2)}:${(
+    "00" + date.getSeconds()
+  ).slice(-2)}]`;
+};
+
+const consoleLog = (value) => {
+  const date = getDebugDate();
+  console.log(date, value);
+};
+
 module.exports = {
   isUUIDCorrect,
   clearUploadsDirectory,
   createToken,
   checkToken,
+  parseJwt,
   authorize,
   sha256,
+  getDebugDate,
+  consoleLog,
 };
