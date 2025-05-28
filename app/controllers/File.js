@@ -3,58 +3,93 @@ const path = require("path");
 const fsp = require("fs/promises");
 const fs = require("fs");
 const { v4 } = require("uuid");
+const multer = require("multer");
 
 const FILES_DIRECTORY = path.join(__dirname, "..", "..", "public");
 const UPLOAD_DIRECTORY = path.join(__dirname, "..", "..", "uploads");
 
-const handleFileUpload = async (file = undefined) => {
-  file.newname = v4();
-  const lvOneDir = path.join(FILES_DIRECTORY, file.newname[0]);
-  const lvTwoDir = path.join(lvOneDir, file.newname[1]);
-  const fileNameSplit = file.originalname.split(".");
-  if (fileNameSplit.length > 0)
-    file.extension = fileNameSplit[fileNameSplit.length - 1];
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads");
+  },
+  filename: (req, file, cb) => {
+    const timeNow = new Date().getTime();
+    const fileName = `${timeNow}_${file.originalname}`;
+    cb(null, fileName);
+  },
+});
 
-  return new Promise((resolve, reject) => {
-    try {
-      // Make directory for the file
-      fsp.mkdir(lvTwoDir, { recursive: true }).then(() => {
-        const sourceFile = path.join(UPLOAD_DIRECTORY, file.filename);
-        const targetFile = path.join(
-          FILES_DIRECTORY,
-          file.newname[0],
-          file.newname[1],
-          `${file.newname}.${file.extension}`
-        );
-        // Copy files to the vault
-        fsp.copyFile(sourceFile, targetFile).then(
-          // Remove the uploaded from file from temp directory
-          fsp.unlink(sourceFile)
-        );
-        // Create a database entry
-        FileModel.create({
-          fileName: file.newname,
-          originalName: file.originalname,
-          extension: file.extension,
-          size: file.size,
-        }).then(resolve("File uploaded"));
-      });
-    } catch (err) {
-      reject(err);
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 1 * 1000 * 1000 * 10 }, // max 10MB
+  fileFilter: function (req, file, cb) {
+    // Set the filetypes, it is optional
+    var filetypes = /jpeg|jpg|png|mp4/;
+    var mimetype = filetypes.test(file.mimetype);
+
+    var extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+
+    if (mimetype && extname) {
+      return cb(null, true);
     }
-  });
-};
+
+    cb(
+      "Error: File upload only supports the " +
+        "following filetypes - " +
+        filetypes
+    );
+  },
+  // mypic is the name of file attribute
+}).single("file");
 
 const uploadFile = (req, res) => {
-  // console.log("File received: ", req.file);
-  handleFileUpload(req.file)
-    .then((result) => {
-      res.json({ message: "File uploaded" });
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).json({ message: "Could not upload the file" });
-    });
+  upload(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      // Multer Error
+      return res.status(400).json({ message: err.message });
+    } else if (err) {
+      // Some other error
+      return res
+        .status(400)
+        .json({
+          message: err.message
+            ? err.message
+            : "Some other error accured",
+        });
+    } else {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      const file = req.file;
+      file.newname = v4();
+      const lvOneDir = path.join(FILES_DIRECTORY, file.newname[0]);
+      const lvTwoDir = path.join(lvOneDir, file.newname[1]);
+      const fileNameSplit = file.originalname.split(".");
+      if (fileNameSplit.length > 0)
+        file.extension = fileNameSplit[fileNameSplit.length - 1];
+      const sourceFile = path.join(UPLOAD_DIRECTORY, file.filename);
+      const targetFile = path.join(
+        FILES_DIRECTORY,
+        file.newname[0],
+        file.newname[1],
+        file.extension ? `${file.newname}.${file.extension}` : ""
+      );
+
+      try {
+        await fsp.mkdir(lvTwoDir, { recursive: true });
+        await fsp.copyFile(sourceFile, targetFile);
+        await fsp.unlink(sourceFile);
+      } catch (err) {
+        return res
+          .status(500)
+          .json({ message: "Failed to save uploaded file" });
+      }
+
+      return res.json({ message: "File uploaded" });
+    }
+  });
 };
 
 const getFile = async (req, res) => {
@@ -108,6 +143,7 @@ const getFiles = (req, res) => {
 };
 
 module.exports = {
+  upload,
   uploadFile,
   getFile,
   getFiles,

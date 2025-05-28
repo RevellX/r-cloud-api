@@ -1,82 +1,98 @@
 const express = require("express");
 const {
   getDuties,
+  getDuty,
   swapDuties,
   deleteDuty,
   insertDuty,
   getUsers,
   toggleUser,
+  getUser,
+  createUser,
+  editUser,
+  deleteUser,
 } = require("../controllers/Duty");
 const { authorize } = require("../utils/functions");
 const { userHasPermission } = require("../controllers/Auth");
 const router = express.Router();
 
+/**
+ * Just get available duties and planned holidays
+ */
 router.get("/duties", getDuties);
 
+/**
+ * Get duty by dutyDate
+ *
+ * {
+ *  "dutyDate": date of duty
+ * }
+ */
+router.get("/duty/:dutyDate", getDuty);
+
 /* 
+
+  Edit dutyUser of a duty
+
+  dutyDate is always required.
+  UserId is optional. If its there, that user will be placed and that date. It it's not there, that duty will be deleted.
+
   {
-    "dutyOne": UUID of first duty
-    "dutyTwo": UUID of second duty
+    "dutyDate": date of a duty
+    "userId": UUID of dutyUser
   }
 */
 router.patch(
-  "/duties",
+  "/duty/:dutyDate",
   authorize,
   userHasPermission("duties.swap"),
   swapDuties
 );
 
-/* 
-  {
-    "dutyId": UUID of duty where you want to insert
-    "userId": UUID of user which you want to insert
-  }
+/**
+ * Get duty enabled users
+ */
+router.get("/dutyUsers", getUsers);
 
-  New duty with "userId" will we inserted on the place of "dutyId"
-  "dutyId" and all future duties will be moved one day forward
-*/
+/**
+ * Get duty enabled user
+ */
+router.get("/dutyUser/:dutyUserId", getUser);
+
+/**
+ * Register new user
+ *
+ * body: {
+ *  name: (string) Display name of the newly created user
+ *  shortcut: (shortcut) Id used by bureau to send dispatch requests (DPD thing...)
+ * }
+ *
+ */
 router.post(
-  "/duty",
+  "/dutyUser",
   authorize,
-  userHasPermission("duties.insert"),
-  insertDuty
+  userHasPermission("duties.manageUsers"),
+  createUser
 );
 
-/* 
-  {
-    "dutyId": UUID of duty which you want to delete
-  }
-
-  "dutyId" will be deleted and all future duties will be moved one day backwards
-*/
-router.delete(
-  "/duty",
-  authorize,
-  userHasPermission("duties.delete"),
-  deleteDuty
-);
-
-/*
-  Get duty enabled users
-*/
-router.get(
-  "/dutyUsers",
-  authorize,
-  userHasPermission("duties.toggle"),
-  getUsers
-);
-
-/*
-  {
-    "userId": UUID of user which you want to toggle "isDutyEnabled"
-  }
-
-*/
+/**
+ * Edit already existing user
+ */
 router.patch(
-  "/dutyToggle/:userId",
+  "/dutyUser/:dutyUserId",
   authorize,
-  userHasPermission("duties.toggle"),
-  toggleUser
+  userHasPermission("duties.manageUsers"),
+  editUser
+);
+
+/**
+ * Delete user
+ */
+router.delete(
+  "/dutyUser/:dutyUserId",
+  authorize,
+  userHasPermission("duties.manageUsers"),
+  deleteUser
 );
 
 module.exports = router;

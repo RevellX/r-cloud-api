@@ -25,6 +25,7 @@ const DutyExcludedDayModel = require("./models/DutyExcludedDay");
 const ExpenseModel = require("./models/Expense");
 const ExpenseGroupModel = require("./models/ExpenseGroup");
 const MessageModel = require("./models/Message");
+const DutyUserModel = require("./models/DutyUser");
 const { where } = require("sequelize");
 const { group } = require("console");
 const sequelize = require("./config/database");
@@ -55,15 +56,16 @@ const initApp = async () => {
       // console.log("Syncing database models"); // { force: true} <- be carefull with that
       // await FileModel.sync({ force: true });
       // await UserModel.sync({ alter: true });
-      // await DutyModel.sync({ force: true });
+      await DutyModel.sync({ force: true });
       // await DutyExcludedDayModel.sync({ force: true });
       // await ExpenseModel.sync({ alter: true });
       // await ExpenseGroupModel.sync({ alter: true });
       // await MessageModel.sync({ force: true });
+      await DutyUserModel.sync({ alter: true });
 
       // Relations between models
-      UserModel.hasMany(DutyModel);
-      DutyModel.belongsTo(UserModel);
+      DutyUserModel.hasMany(DutyModel);
+      DutyModel.belongsTo(DutyUserModel);
 
       ExpenseGroupModel.hasMany(ExpenseModel);
       ExpenseModel.belongsTo(ExpenseGroupModel);
@@ -80,9 +82,15 @@ const initApp = async () => {
       app.use(
         cors({
           origin: [
+            "*",
             "http://revellx-engine.pl:3000",
+            "https://files.revellx-engine.pl",
             "http://localhost:3000",
-            "http://193.168.1.3:3000",
+            "http://localhost:3002",
+            "http://192.168.1.3:3000",
+            "http://192.168.0.25:3000",
+            "http://192.168.67.85:3000",
+            "http://192.168.67.85:5001",
           ],
         })
       );
@@ -92,7 +100,7 @@ const initApp = async () => {
       // app.use("/files", express.static(__dirname + "/../public"));
 
       app.use("/api", require("./routes/Auth"));
-      // app.use("/api", require("./routes/File"));
+      app.use("/api", require("./routes/File"));
       app.use("/api", require("./routes/Duty"));
       app.use("/api", require("./routes/Finance"));
       app.use("/api", require("./routes/Messages"));
@@ -131,10 +139,37 @@ const initApp = async () => {
   });
 };
 
-const doTestingStuff = async () => {};
+const doTestingStuff = async () => {
+  // Create some fake duties
+  await DutyUserModel.bulkCreate([
+    { name: "Kamil", shortcut: "10Z" },
+    { name: "Patryk", shortcut: "11Z" },
+    { name: "Łukasz", shortcut: "12Z" },
+    { name: "Wojtek", shortcut: "13Z" },
+  ]);
+
+  const users = await DutyUserModel.findAll({
+    where: { isDutyEnabled: true },
+  });
+
+  const date = new Date();
+
+  for (let i = 0; i < 10; i++) {
+    function getRandomInt(max) {
+      return Math.floor(Math.random() + max);
+    }
+
+    await DutyModel.create({
+      date: date,
+      dutyUserId: users[getRandomInt(users.length - 1)].id,
+    });
+
+    date.setDate(date.getDate() + 1);
+  }
+};
 
 initApp()
   .then(() => {
-    // doTestingStuff();
+    doTestingStuff();
   })
   .catch((err) => console.log(err));

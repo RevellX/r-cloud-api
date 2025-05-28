@@ -6,6 +6,8 @@ const {
   checkUsernameIsUnique,
   swapUsers,
   checkUserPermission,
+  getUser,
+  updateToken,
 } = require("../controllers/Auth");
 const { authorize } = require("../utils/functions");
 const router = express.Router();
@@ -18,5 +20,7 @@ router.post(
   checkUserPermission("admin"),
   swapUsers
 );
+router.get("/user", authorize, getUser);
+router.get("/updateToken", authorize, updateToken);
 
 module.exports = router;

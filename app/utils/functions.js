@@ -14,12 +14,13 @@ const createToken = (user_id) => {
     { user_id: user_id },
     process.env.JWT_KEY_SECRET,
     {
-      expiresIn: "24h",
+      expiresIn: "72h",
     }
   );
 
   const date = new Date();
-  date.setDate(date.getDate() + 1);
+  date.setDate(date.getDate() + 3);
+  // date.setMinutes(date.getMinutes() + 10);
   const tokenExpire = date.getTime();
 
   return { token: token, expire: tokenExpire };

@@ -1,7 +1,66 @@
 const Duty = require("../models/Duty");
 const User = require("../models/User");
-const { Op } = require("sequelize");
-const { isUUIDCorrect } = require("../utils/functions");
+const { Op, where } = require("sequelize");
+const DutyExcludedDay = require("../models/DutyExcludedDay");
+const DutyUser = require("../models/DutyUser");
+const { consoleLog } = require("../utils/functions");
+
+const isDateCorrect = (date) => {
+  // Sketchy solution, but I couldn't get the RegExp to work properly
+  // I guess we just have to live with that
+  if (date && typeof date === "string" && date.length === 10)
+    return true;
+  return false;
+};
+
+const isNameCorrect = (name) => {
+  if (!name) {
+    throw new Error("Name is required");
+  } else if (typeof name !== "string") {
+    throw new Error("Name must be a string");
+  } else if (name.length === 0 || name.length > 32) {
+    throw new Error(
+      "Name cannot be empty and must be 32 characters or less"
+    );
+  }
+
+  return true;
+};
+
+const isShortcutCorrect = (shortcut) => {
+  if (!shortcut) {
+    throw new Error("Shortcut is required");
+  } else if (typeof shortcut !== "string") {
+    throw new Error("Shortcut must be a string");
+  } else if (shortcut.length === 0 || shortcut.length > 6) {
+    throw new Error(
+      "Shortcut cannot be empty and must by 6 characters or lesss"
+    );
+  }
+
+  return true;
+};
+
+const isDutyEnabledCorrect = (isEnabled) => {
+  if (!isEnabled && isEnabled !== false) {
+    throw new Error("isDutyEnabled is required");
+  } else if (typeof isEnabled !== "boolean") {
+    throw new Error("isDutyEnabled must be a boolean");
+  }
+
+  return true;
+};
+
+const isUUIDCorrect = (uuid) => {
+  if (!uuid) {
+    throw new Error("UUID is required");
+  } else if (typeof uuid !== "string") {
+    throw new Error("UUID myst be a string");
+  } else if (uuid.length !== 36) {
+    throw new Error("UUID must be 36 characters long");
+  }
+  return true;
+};
 
 const createDateObjFromDate = (date) => {
   let fillYears = "00" + date.split("-")[0];
@@ -19,14 +78,8 @@ const createDateObjFromDate = (date) => {
 };
 
 const getUsers = (req, res) => {
-  User.findAll({
-    attributes: [
-      "id",
-      "username",
-      "shortcut",
-      "order",
-      "isDutyEnabled",
-    ],
+  DutyUser.findAll({
+    attributes: ["id", "name", "shortcut", "isDutyEnabled"],
   })
     .then((users) => {
       return res.json(users);
@@ -38,191 +91,286 @@ const getUsers = (req, res) => {
     });
 };
 
-const toggleUser = (req, res) => {
-  const userId = req.params["userId"];
+const getUser = (req, res) => {
+  const userId = req.params["dutyUserId"];
 
-  if (!isUUIDCorrect(userId))
-    return res
-      .status(400)
-      .json({ message: "Something is wrong with your body data" });
-
-  User.findByPk(userId, {
-    attributes: [
-      "id",
-      "username",
-      "shortcut",
-      "order",
-      "isDutyEnabled",
-    ],
+  DutyUser.findByPk(userId, {
+    attributes: ["id", "name", "shortcut", "isDutyEnabled"],
   })
-    .then((user) => {
-      if (!user)
+    .then((data) => {
+      if (data) return res.json(data);
+      else
         return res
           .status(404)
-          .send({ message: "Unable to find user" });
-
-      user.isDutyEnabled = !user.isDutyEnabled;
-
-      return user.save();
-    })
-    .then((user) => {
-      return res.json(user);
+          .json({ message: "Unable to find user" });
     })
     .catch((err) => {
       return res
         .status(500)
-        .json({ message: "Unable to toggle user" });
+        .json({ message: "Unable to fetch user" });
+    });
+};
+
+const createUser = (req, res) => {
+  const { name, shortcut } = req.body;
+  let { isDutyEnabled } = req.body;
+
+  if (isDutyEnabled === undefined) isDutyEnabled = true;
+
+  try {
+    isNameCorrect(name);
+    isShortcutCorrect(shortcut);
+    isDutyEnabledCorrect(isDutyEnabled);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+
+  DutyUser.create({
+    name,
+    shortcut,
+    isDutyEnabled,
+  })
+    .then((data) => {
+      return res.json({
+        message: "Created new user",
+        dutyUserId: data.id,
+      });
+    })
+    .catch((err) => {
+      return res
+        .status(500)
+        .json({ message: "Failed to create new user" });
+    });
+};
+
+const editUser = (req, res) => {
+  const { name, shortcut, isDutyEnabled } = req.body;
+  const userId = req.params["dutyUserId"];
+
+  try {
+    isUUIDCorrect(userId);
+    if (name) isNameCorrect(name);
+    if (shortcut) isShortcutCorrect(shortcut);
+    if (isDutyEnabled !== undefined)
+      isDutyEnabledCorrect(isDutyEnabled);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+
+  DutyUser.findByPk(userId)
+    .then((user) => {
+      if (!user) {
+        return res
+          .status(404)
+          .json({ message: "Unable to find user" });
+      } else {
+        if (name) user.name = name;
+        if (shortcut) user.shortcut = shortcut;
+        if (isDutyEnabled !== undefined)
+          user.isDutyEnabled = isDutyEnabled;
+
+        return user.save();
+      }
+    })
+    .then((user) => {
+      if (user) return res.json({ message: "User edited" });
+    })
+    .catch((err) => {
+      consoleLog(err);
+      return res.status(500).json({ message: "Failed to edit user" });
+    });
+};
+
+const deleteUser = (req, res) => {
+  const userId = req.params["dutyUserId"];
+
+  try {
+    isUUIDCorrect(userId);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+
+  DutyUser.findByPk(userId)
+    .then((user) => {
+      if (!user) {
+        res.status(404).json({ message: "Unable to find user" });
+      } else {
+        return user.destroy();
+      }
+    })
+    .then((user) => {
+      if (user) return res.json({ message: "User deleted" });
+    })
+    .catch((err) => {
+      return res
+        .status(500)
+        .json({ message: "Failed to delete user" });
     });
 };
 
 const getDuties = (req, res) => {
   const date = new Date();
-  const todaysDate = `${date.getFullYear()}-${
-    date.getMonth() + 1
-  }-${date.getDate()}`;
+  date.setDate(date.getDate() - date.getDay() + 1);
+  const todaysDate = createDateObjFromDate(
+    `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+  );
 
-  Duty.findAll({
-    attributes: ["id", "date"],
-    include: {
-      model: User,
-      attributes: ["id", "username", "shortcut"],
-    },
-    limit: 20,
-    where: { date: { [Op.gte]: createDateObjFromDate(todaysDate) } },
-    order: [["date", "ASC"]],
-  })
-    .then((duties) => {
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + 10);
+
+  Promise.all([
+    DutyExcludedDay.findAll({
+      attributes: ["id", "date"],
+      limit: 10,
+      where: {
+        [Op.and]: [
+          { date: { [Op.gte]: todaysDate } },
+          { date: { [Op.lte]: futureDate } },
+        ],
+      },
+      order: [["date", "ASC"]],
+    }),
+    Duty.findAll({
+      attributes: ["id", "date"],
+      include: {
+        model: DutyUser,
+        attributes: ["id", "name", "shortcut"],
+      },
+      limit: 10,
+      where: { date: { [Op.gte]: todaysDate } },
+      order: [["date", "ASC"]],
+    }),
+  ])
+    .then((values) => {
+      const duties = [...values[0], ...values[1]].sort((a, b) => {
+        const aDateObj = createDateObjFromDate(a.date);
+        const bDateObj = createDateObjFromDate(b.date);
+        if (aDateObj > bDateObj) return 1;
+        else if (bDateObj > aDateObj) return -1;
+        return 0;
+      });
       return res.json(duties);
     })
     .catch((err) => {
-      // console.log(err);
+      console.log(err);
       return res
         .status(500)
         .json({ message: "Unable to fetch duties" });
     });
 };
 
-const swapDuties = (req, res) => {
-  const { dutyOne, dutyTwo } = req.body;
+const getDuty = (req, res) => {
+  const dutyDate = req.params["dutyDate"];
 
-  if (!isUUIDCorrect(dutyOne) || !isUUIDCorrect(dutyTwo))
+  if (!isDateCorrect(dutyDate))
     return res
       .status(400)
-      .json({ message: "Something is wrong with your body data" });
+      .json({ message: "Something is wrong with your date" });
 
-  Duty.findAll({
-    attributes: ["id", "date", "userId"],
-    where: {
-      id: [dutyOne, dutyTwo],
-    },
-  })
-    .then((duties) => {
-      const [dutyOneB, dutyTwoB] = duties;
-      const tempId = dutyOneB.userId;
-      dutyOneB.userId = dutyTwoB.userId;
-      dutyTwoB.userId = tempId;
-
-      const savePromises = duties.map((duty) => duty.save());
-
-      Promise.all(savePromises)
-        .then(() => res.json({ message: "Duties swapped" }))
-        .catch(() =>
-          res.status(500).json({ message: "Unable to swap duties" })
-        );
-    })
-    .catch((err) => {
-      // console.log(err);
-      return res
-        .status(500)
-        .json({ message: "Unable to swap duties" });
-    });
-};
-
-const deleteDuty = (req, res, next) => {
-  const { dutyId } = req.body;
-
-  if (!isUUIDCorrect(dutyId))
-    return res
-      .status(400)
-      .json({ message: "Something is wrong with your body data" });
-
-  let deletedDutyDate;
-  Duty.findByPk(dutyId, {
-    attributes: ["id", "date", "userId"],
-  })
-    .then((duty) => {
-      deletedDutyDate = duty.date;
-      duty.destroy();
-      return Duty.findAll({
-        attributes: ["id", "date", "userId"],
-        where: {
-          date: { [Op.gt]: createDateObjFromDate(duty.date) },
+  DutyExcludedDay.findOne({
+    attributes: ["id", "date"],
+    where: { date: dutyDate },
+  }).then((exDay) => {
+    if (exDay) {
+      return res.json(exDay);
+    } else {
+      Duty.findOne({
+        attributes: ["id", "date"],
+        include: {
+          model: DutyUser,
+          attributes: ["id", "name", "shortcut"],
         },
-        order: [["date", "ASC"]],
-      });
-    })
-    .then((futureDuties) => {
-      let tempDate;
-      return Promise.all(
-        futureDuties.map((duty) => {
-          tempDate = duty.date;
-          duty.date = deletedDutyDate;
-          deletedDutyDate = tempDate;
-          return duty.save();
+        where: { date: dutyDate },
+      })
+        .then((duty) => {
+          if (duty) {
+            return res.json(duty);
+          } else {
+            return res
+              .status(404)
+              .json({ message: "Unable to find duty" });
+          }
         })
-      );
-    })
-    .then(() => {
-      res.json({ message: "OK" });
-    })
-    .catch((err) => {
-      // console.log(err);
-      res.status(500).json({ message: "Unable to delete duty" });
-    });
+        .catch((err) => {
+          console.log(err);
+          return res
+            .status(500)
+            .json({ message: "Unable to fetch duty" });
+        });
+    }
+  });
 };
 
-const insertDuty = (req, res, next) => {
-  const { dutyId, userId } = req.body;
-  return res.json({ message: "Endpoint disabled" });
+const swapDuties = (req, res) => {
+  const { userId } = req.body;
+  const dutyDate = req.params["dutyDate"];
 
-  if (!isUUIDCorrect(dutyId) || !isUUIDCorrect(userId))
+  if (!isDateCorrect(dutyDate))
     return res
       .status(400)
-      .json({ message: "Something is wrong with your body data" });
+      .json({ message: "Something is wrong with your date" });
 
-  let insertedDuty;
-  let futureDuties;
+  consoleLog(dutyDate);
 
-  Duty.findByPk(dutyId, {
-    attributes: ["id", "date", "userId"],
-  })
-    .then((l_insertedDuty) => {
-      if (!l_insertedDuty) throw "Insert duty does not exist";
-      insertedDuty = l_insertedDuty;
-
-      return Duty.findAll({
-        attributes: ["id", "date", "userId"],
-        where: {
-          date: { [Op.gt]: l_insertedDuty.date },
-        },
-        order: [["date", "ASC"]],
-      });
+  // Find duty by date and destroy if it exists
+  Duty.findOne({ where: { date: dutyDate } })
+    .then((duty) => {
+      if (duty) {
+        return duty.destroy();
+      }
     })
-    .then((l_futureDuties) => {
-      futureDuties = l_futureDuties;
-      res.json({ message: "OK" });
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).json({ message: "Unable to insert duty" });
+    .then((d) => {
+      if (!userId) return res.json({ message: "OK" });
     });
+
+  // If userId is given. Create new duty
+  if (userId) {
+    if (!isUUIDCorrect(userId)) {
+      return res
+        .status(400)
+        .json({ message: "Something is wrong with your userId" });
+    }
+
+    // Create new duty with given date and userId
+    DutyUser.findByPk(userId).then((dutyUser) => {
+      if (!dutyUser) {
+        return res
+          .status(404)
+          .json({ message: "Couldn't find user with given id" });
+      } else {
+        Duty.create({
+          date: dutyDate,
+          dutyUserId: userId,
+        })
+          .then(() => {
+            return res.json({ message: "OK" });
+          })
+          .catch((err) => {
+            return res.status(500).json({
+              message: "Something went wrong while creating new duty",
+            });
+          });
+      }
+    });
+  }
+
+  // Duty there HAS to be in format: "YYYY-MM-DD", if it's not => 400 BAD REQUEST
+  //  Find duty by date and delete it, no matter what.
+
+  // Check DATE
+
+  // userId is optional, if it's there is HAS to be UUID;
+  //  check if userId actually exists, if it exists simply create new duty with given UUID and DATE.
+  // That's it.
 };
 
 module.exports = {
   getUsers,
-  toggleUser,
+  getUser,
+  createUser,
+  editUser,
+  deleteUser,
   getDuties,
+  getDuty,
   swapDuties,
-  deleteDuty,
-  insertDuty,
 };

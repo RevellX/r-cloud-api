@@ -251,6 +251,21 @@ const authenticate = async (req, res, next) => {
     });
 };
 
+const getUser = (req, res) => {
+  const { user_id: loggedUser } = req.tokenPayload;
+
+  UserModel.findByPk(loggedUser, {
+    attributes: ["id", "username", "permissions"],
+  }).then((user) => {
+    return res.json(user);
+  });
+};
+
+const updateToken = (req, res) => {
+  const { user_id: loggedUser } = req.tokenPayload;
+  return res.json(createToken(loggedUser));
+};
+
 module.exports = {
   authenticate,
   register,
@@ -259,4 +274,6 @@ module.exports = {
   checkUsernameIsUnique,
   checkUserPermission,
   userHasPermission,
+  getUser,
+  updateToken,
 };

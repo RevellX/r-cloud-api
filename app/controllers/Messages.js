@@ -1,8 +1,15 @@
 const sequelize = require("../config/database");
-const { QueryTypes, where } = require("sequelize");
+const { QueryTypes, Op } = require("sequelize");
 const Message = require("../models/Message");
 const User = require("../models/User");
 const { isUUIDCorrect } = require("../utils/functions");
+
+const isMessageCorrect = (msg) => {
+  if (typeof msg !== "string") return false;
+  if (msg.length < 1) return false;
+
+  return true;
+};
 
 const getUser = (req, res) => {
   const userId = req.params["userId"];
@@ -27,8 +34,15 @@ const getUser = (req, res) => {
 };
 
 const getUsers = (req, res) => {
+  const { user_id: loggedUser } = req.tokenPayload;
+
   User.findAll({
     attributes: ["id", "username"],
+    where: {
+      [Op.not]: {
+        id: loggedUser,
+      },
+    },
   })
     .then((users) => {
       return res.json(users);
@@ -119,6 +133,11 @@ const sendMessage = (req, res) => {
   const { user_id: senderId } = req.tokenPayload;
   const receiverId = req.params["chatId"];
   const { value } = req.body;
+
+  if (!isMessageCorrect(value))
+    return res
+      .status(400)
+      .json({ message: "Something is wrong with message value" });
 
   Message.create({
     value,

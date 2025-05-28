@@ -1,29 +1,32 @@
 const { DataTypes, Sequelize } = require("sequelize");
 const sequelize = require("../config/database");
 
-const Duty = sequelize.define(
-  "duty",
+const DutyUser = sequelize.define(
+  "dutyUser",
   {
     id: {
       type: DataTypes.UUID,
       defaultValue: Sequelize.UUIDV4,
       primaryKey: true,
     },
-    date: {
-      type: DataTypes.DATEONLY,
-      defaultValue: DataTypes.NOW,
+    name: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
-    dutyUserId: {
-      type: DataTypes.UUID,
+    shortcut: {
+      type: DataTypes.STRING,
       allowNull: false,
+    },
+    isDutyEnabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
   },
   {
     indexes: [{ unique: true, fields: ["id"] }],
-    tableName: "duties",
     paranoid: true,
   }
 );
 
-module.exports = Duty;
+module.exports = DutyUser;
