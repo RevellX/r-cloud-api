@@ -10,13 +10,9 @@ require("dotenv").config({
 });
 
 const createToken = (user_id) => {
-  const token = jwt.sign(
-    { user_id: user_id },
-    process.env.JWT_KEY_SECRET,
-    {
-      expiresIn: "72h",
-    }
-  );
+  const token = jwt.sign({ user_id: user_id }, process.env.JWT_KEY_SECRET, {
+    expiresIn: "72h",
+  });
 
   const date = new Date();
   date.setDate(date.getDate() + 3);
@@ -36,9 +32,7 @@ const checkToken = (token) => {
 };
 
 const parseJwt = (token) => {
-  return JSON.parse(
-    Buffer.from(token.split(".")[1], "base64").toString()
-  );
+  return JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
 };
 
 const authorize = (req, res, next) => {
@@ -88,8 +82,7 @@ const sha256 = async (message) => {
 };
 
 const isUUIDCorrect = (uuid) => {
-  if (uuid && typeof uuid === "string" && uuid.length === 36)
-    return true;
+  if (uuid && typeof uuid === "string" && uuid.length === 36) return true;
   return false;
 };
 

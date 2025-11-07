@@ -30,6 +30,7 @@ const { where } = require("sequelize");
 const { group } = require("console");
 const sequelize = require("./config/database");
 const { type } = require("os");
+const User = require("./models/User");
 
 const initApp = async () => {
   const options = {
@@ -55,12 +56,12 @@ const initApp = async () => {
       // Syncing database models
       // console.log("Syncing database models"); // { force: true} <- be carefull with that
       // await FileModel.sync({ force: true });
-      // await UserModel.sync({ alter: true });
+      await UserModel.sync({ alter: true });
       await DutyModel.sync({ force: true });
       // await DutyExcludedDayModel.sync({ force: true });
       // await ExpenseModel.sync({ alter: true });
       // await ExpenseGroupModel.sync({ alter: true });
-      // await MessageModel.sync({ force: true });
+      await MessageModel.sync({ force: true });
       await DutyUserModel.sync({ alter: true });
 
       // Relations between models
@@ -81,17 +82,7 @@ const initApp = async () => {
       // CORS
       app.use(
         cors({
-          origin: [
-            "*",
-            "http://revellx-engine.pl:3000",
-            "https://files.revellx-engine.pl",
-            "http://localhost:3000",
-            "http://localhost:3002",
-            "http://192.168.1.3:3000",
-            "http://192.168.0.25:3000",
-            "http://192.168.67.85:3000",
-            "http://192.168.67.85:5001",
-          ],
+          origin: ["https://messages.revellx-engine.pl"],
         })
       );
 
@@ -108,12 +99,8 @@ const initApp = async () => {
       // HTTP or HTTPS?
       let server;
       if (options.env === "PRODUCTION") {
-        const privateKey = fs.readFileSync(
-          process.env.SSL_PRIVATEKEY
-        );
-        const certificate = fs.readFileSync(
-          process.env.SSL_CERTIFICATE
-        );
+        const privateKey = fs.readFileSync(process.env.SSL_PRIVATEKEY);
+        const certificate = fs.readFileSync(process.env.SSL_CERTIFICATE);
         server = https.createServer(
           {
             key: privateKey,
@@ -121,8 +108,7 @@ const initApp = async () => {
           },
           app
         );
-      } else if (options.env === "DEVELOPMENT")
-        server = http.createServer(app);
+      } else if (options.env === "DEVELOPMENT") server = http.createServer(app);
       else throw new Error("Incorrect env option");
 
       // Start sockets.io server
