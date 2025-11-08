@@ -82,7 +82,10 @@ const initApp = async () => {
       // CORS
       app.use(
         cors({
-          origin: ["https://messages.revellx-engine.pl"],
+          origin: [
+            "https://messages.revellx-engine.pl",
+            "https://api-legacy.revellx-engine.pl",
+          ],
         })
       );
 
