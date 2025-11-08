@@ -1,7 +1,7 @@
 # 🌐 REST API with Node.js & Express.js
 
 This is a simple and modular RESTful API built with **Node.js** and **Express.js** . It is designed for learning, rapid prototyping, or building scalable backend services.
-It powers all of my hobby and learning projects.
+It powers my hobby and learning projects.
 
 ---
 
@@ -33,11 +33,10 @@ It powers all of my hobby and learning projects.
 
 ```bash
 git clone https://github.com/RevellX/r-cloud-api.git
-cd r-cloud-api
-node app/index.js
 ```
 
 ### 🛠 Install Dependencies
+
 ```bash
 npm install
 ```
@@ -54,19 +53,19 @@ DB_DATABASE="[your_db_name]"
 
 JWT_KEY_SECRET="[your_secret_key_JWT]"
 
-SSL_PRIVATEKEY="[absolute_path_to_your_private_key]"
-SSL_CERTIFICATE="[aboslute_path_to_your_certificate]"
-
 APP_DOMAIN="https://www.[your_domain_name]"
 ```
 
 ### ▶️ Run the Server
+
 ```bash
 node app/index.js
 ```
 
 ### API Endpoints
+
 Authentication endpoints
+
 ```http
 POST   /api/authenticate       # Get access token by prividing user credentials
 POST   /api/register           # Create new user account by providing user credentials
@@ -74,13 +73,17 @@ POST   /api/swap-users         # Swap order of two users in database
 GET    /api/user               # Get user info
 GET    /api/updateToken        # Get new access token
 ```
+
 File upload and download endpoints
+
 ```http
 POST   /api/file               # Used to upload new file to server
 GET    /api/file-old/:fileId   # Get file by its id
 GET    /api/files-old          # Get available users for logged user
 ```
+
 Duties managment for work
+
 ```http
 GET    /api/duties             # Get available duties and planned holidays
 GET    /api/duty/:dutyDate     # Get duty by its date
@@ -91,7 +94,9 @@ POST   /api/dutyUser           # Register new duty enabled user
 PATCH  /api/dutyUser/:dutyUserId # Edit duty enabled user
 DELETE /api/dutyUser/:dutyUserId # Delete duty enabled user
 ```
+
 Expenses managment
+
 ```http
 GET    /api/expense/:expenseId # Get expense by its id
 GET    /api/expenses/:groupId  # Get expenses assigned to a group
@@ -103,7 +108,9 @@ POST   /api/expense-group      # Create new expense group
 PATCH  /api/expense-group/:id  # Edit expense group by its id
 DELETE /api/expense-group/:id  # Delete expense group by its id
 ```
+
 Messenger chat endpoints
+
 ```http
 GET   /api/messages/user/:id   # Get user by id
 GET   /api/messages/users      # Get list of users who can be messaged
